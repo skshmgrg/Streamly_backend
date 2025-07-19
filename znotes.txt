@@ -1,0 +1,24 @@
+🧩 Use Cases of Cookies
+Use Case	Why Use Cookies?
+✅ Authentication (sessions/tokens)	Store access_token, session ID
+🌍 Remember user preferences	Language, theme
+🛒 Shopping carts	Track items added
+📊 Analytics tracking	Track repeat visits
+🎫 CSRF protection	Send CSRF token via cook
+
+
+✅ Why Use Cookies?
+Feature	Benefit
+🧠 Stored on browser	Persistent across page reloads
+🔒 Can be secure	Use Secure, SameSite, HttpOnly, etc.
+🔄 Sent automatically	Browser sends cookie with every request (useful for session/auth)
+🎯 Domain-scoped	You control where they’re sent
+🕓 Support expiration	Can be short-lived or persistent
+
+
+in mongoDb , database name is test and it has several collections like videos users tweets etc .
+
+Stages like $match, $skip, $limit, $project, $unwind (for single paths), and $lookup are generally streaming stages. They can start processing and emitting documents as soon as they receive them from the previous stage, without waiting for all input to be available.
+
+Stages like $sort (when applied to all documents), $group, and certain types of $unwind (with preserveNullAndEmptyArrays or on paths that might expand) are blocking stages. They must consume all their input documents before they can produce any output, because their operation requires knowledge of the entire set.
+
