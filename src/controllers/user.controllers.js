@@ -167,6 +167,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,//HttpOnly is a flag you set on a cookie to prevent JavaScript on the client side from accessing it.
     secure: true,//secure true makes the cookie only server modifiable , frontend cant modify it then
+    sameSite: "none",
   };
   // console.log(res);
 
@@ -204,6 +205,7 @@ const logoutUser = asyncHandler(async (req, res) => {
   const options = {
     httpOnly: true,
     secure: true,
+    sameSite: "none",
     //secure true makes the cookie only server modifiable , frontend cant modify it then
   };
 
@@ -239,6 +241,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     const options = {
       httpOnly: true,
       secure: true,
+      sameSite:none
     };
 
     const { accessToken, refreshToken } =
