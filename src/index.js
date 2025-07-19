@@ -1,7 +1,4 @@
-// import dotenv from "dotenv"
-// dotenv.config({
-//     // path:"./.env"
-// })
+import 'dotenv/config';
 console.log('--- src/index.js startup ---');
 console.log('process.env.CORS_ORIGIN at index.js start:', process.env.CORS_ORIGIN); // CHECK THIS!
 console.log('--- End src/index.js startup debug ---');
