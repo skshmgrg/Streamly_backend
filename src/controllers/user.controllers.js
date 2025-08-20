@@ -168,6 +168,7 @@ const loginUser = asyncHandler(async (req, res) => {
     httpOnly: true,//HttpOnly is a flag you set on a cookie to prevent JavaScript on the client side from accessing it.
     secure: true,//secure true makes the cookie only server modifiable , frontend cant modify it then
     sameSite: "none",
+    domain:".streamlyshare.online"
   };
   // console.log(res);
 
@@ -206,6 +207,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: "none",
+    domain:".streamlyshare.online"
     //secure true makes the cookie only server modifiable , frontend cant modify it then
   };
 
@@ -241,7 +243,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     const options = {
       httpOnly: true,
       secure: true,
-      sameSite:"none"
+      sameSite:"none",
+      domain:".streamlyshare.online"
     };
 
     const { accessToken, refreshToken } =
