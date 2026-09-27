@@ -1,6 +1,7 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser";
+import { ApiError } from './utils/ApiError.js';
 
 const app = express()
 
@@ -50,6 +51,25 @@ app.use("/api/v1/comments", commentRouter)
 app.use("/api/v1/likes", likeRouter)
 app.use("/api/v1/playlist", playlistRouter)
 app.use("/api/v1/dashboard", dashboardRouter)
+
+app.use((err, req, res, next) => {
+  if (err instanceof ApiError) {
+    return res.status(err.statusCode).json({
+      success: err.success,
+      message: err.message,
+      data: err.data,
+      errors: err.errors,
+    });
+  }
+
+  console.error("Unhandled error:", err);
+  return res.status(500).json({
+    success: false,
+    message: "Internal server error",
+    data: null,
+    errors: [{ message: err.message || "Something went wrong" }],
+  });
+});
 
 export default app;
 

@@ -1,11 +1,16 @@
 import mongoose, {isValidObjectId} from "mongoose"
+import fsp from "node:fs/promises"
 import {Video} from "../models/video.models.js"
 import {User} from "../models/user.models.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
 import {uploadOnCloudinary,deleteFromCloudinary} from "../utils/cloudinary.js"
+import { videoQueue } from "../queues/videoQueue.js"
 
+const removeLocalFile = async (filePath) => {
+  if (filePath) await fsp.unlink(filePath).catch(() => {})
+};
 
 const getAllVideos = asyncHandler(async (req, res) => {
   const {
@@ -20,7 +25,10 @@ const getAllVideos = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
   const sortOrder = sortType === "asc" ? 1 : -1;
 
-  const matchStage = {};
+  const matchStage = {
+    status: "ready",
+    isPublished: true,
+  };
 
   // Text search filter
   if (query) {
@@ -54,10 +62,14 @@ const getAllVideos = asyncHandler(async (req, res) => {
       $project: {
         title: 1,
         description: 1,
-        videoFile:1,
-        thumbnail:1,
+        videoFile: 1,
+        masterPlaylistUrl: 1,
+        thumbnail: 1,
         views: 1,
         createdAt: 1,
+        status: 1,
+        isPublished: 1,
+        duration: 1,
         "owner._id": 1,
         "owner.username": 1,
         "owner.avatar": 1
@@ -86,29 +98,41 @@ const publishAVideo = asyncHandler(async (req, res) => {
   const thumbnailFile = req.files?.thumbnail?.[0];
 
   if (!title || !description || !videoFile || !thumbnailFile) {
+    await Promise.all([
+      removeLocalFile(videoFile?.path),
+      removeLocalFile(thumbnailFile?.path),
+    ]);
     throw new ApiError(400, "Title, description, video, and thumbnail are required");
   }
 
-  const videoUpload = await uploadOnCloudinary(videoFile.path);
-  const thumbnailUpload = await uploadOnCloudinary(thumbnailFile.path);
+  let video;
+  try {
+    video = await Video.create({
+      title,
+      description,
+      owner: req.user._id,
+      status: "processing",
+    });
 
-  if (!videoUpload || !thumbnailUpload) {
-    throw new ApiError(500, "Cloudinary upload failed");
+    await videoQueue.add("process-video", {
+      videoId: video._id.toString(),
+      videoFilePath: videoFile.path,
+      thumbnailFilePath: thumbnailFile.path,
+    });
+  } catch (error) {
+    await Promise.all([
+      removeLocalFile(videoFile.path),
+      removeLocalFile(thumbnailFile.path),
+      video ? Video.findByIdAndDelete(video._id) : Promise.resolve(),
+    ]);
+    throw error;
   }
 
-  const video = await Video.create({
-    title,
-    description,
-    videoPublicId:videoUpload.public_id,
-    thumbnailPublicId:thumbnailUpload.public_id,
-    videoFile: videoUpload.url,
-    thumbnail: thumbnailUpload.url,
-    duration: videoUpload.duration, // Cloudinary provides this
-    owner: req.user._id,
-  });
-
-  res.status(201).json(
-    new ApiResponse(201, video, "Video published successfully")
+  res.status(202).json(
+    new ApiResponse(202, {
+      videoId: video._id,
+      status: video.status,
+    }, "Video upload queued for processing")
   );
 });
 
@@ -126,10 +150,12 @@ const getVideoById = asyncHandler(async (req, res) => {
   if (!video) {
     throw new ApiError(404, "Video not found");
   }
-  if (!user.watchHistory.includes(videoId)) {
-  await Video.updateOne({ _id: videoId }, { $inc: { views: 1 } });
-  await User.findByIdAndUpdate(userId, { $addToSet: { watchHistory: videoId } });
-}
+
+  // Only track views for fully processed, published videos
+  if (video.status === 'ready' && video.isPublished && !user.watchHistory.includes(videoId)) {
+    await Video.updateOne({ _id: videoId }, { $inc: { views: 1 } });
+    await User.findByIdAndUpdate(userId, { $addToSet: { watchHistory: videoId } });
+  }
 
   res.status(200).json(new ApiResponse(200, video, "Video fetched successfully"));
 });
@@ -140,15 +166,18 @@ const updateVideo = asyncHandler(async (req, res) => {
   const thumbnailLocalPath = req.file?.path;
 
   if (!videoId || !mongoose.Types.ObjectId.isValid(videoId)) {
+    await removeLocalFile(thumbnailLocalPath);
     throw new ApiError(400, "Video ID is missing or invalid");
   }
 
   const video = await Video.findById(videoId);
   if (!video) {
+    await removeLocalFile(thumbnailLocalPath);
     throw new ApiError(404, "Video not found");
   }
 
   if (video.owner.toString() !== req.user._id.toString()) {
+    await removeLocalFile(thumbnailLocalPath);
     throw new ApiError(403, "You are not authorized to update this video");
   }
 
@@ -200,13 +229,17 @@ const deleteVideo = asyncHandler(async (req, res) => {
     }
   }
   
+  // Legacy: raw video file in Cloudinary (pre-HLS videos only)
   if (video.videoPublicId) {
-    const result =await deleteFromCloudinary(video.videoPublicId,"video");
+    const result = await deleteFromCloudinary(video.videoPublicId, "video");
     if (!result || result.result !== "ok") {
-      throw new ApiError(500, "Failed to delete video from Cloudinary");
+      console.warn(`Warning: could not delete legacy videoPublicId ${video.videoPublicId} from Cloudinary`);
     }
+  }
 
-}
+  for (const publicId of video.hlsPublicIds || []) {
+    await deleteFromCloudinary(publicId, "raw");
+  }
 
   await video.deleteOne();
 

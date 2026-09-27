@@ -49,9 +49,12 @@ const getVideoComments = asyncHandler(async (req, res) => {
                         username:1
                     }
                 }]
+                // this sub pipeline ensures that only the fields under project are being hilighted in the 
             }
         },
         {
+            // addFields lets you create new fields or modify existing fields in your aggregation results.
+            //single result is returned by the lookup,but in the form of array, we need object not array, so we pick up the first 
             $addFields:{
                 owner:{
                     $first:"$owner"

@@ -7,6 +7,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { application, response } from "express";
 import jwt from "jsonwebtoken";
 import fs from 'fs'
+import { getCookieOptions, getClearCookieOptions } from '../utils/cookieOptions.js';
 
 const generateAccessAndRefreshTokens = async (userId) => {
   try {
@@ -164,12 +165,7 @@ const loginUser = asyncHandler(async (req, res) => {
 
 
   // Cookies are small pieces of data that the server sends to the client (browser), and the browser stores them and sends them back with every request to the same domain.
-  const options = {
-    httpOnly: true,//HttpOnly is a flag you set on a cookie to prevent JavaScript on the client side from accessing it.
-    secure: true,//secure true makes the cookie only server modifiable , frontend cant modify it then
-    sameSite: "none",
-    domain:".streamlyshare.online"
-  };
+  const options = getCookieOptions();
   // console.log(res);
 
   return res
@@ -203,13 +199,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     }
   );
 
-  const options = {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    domain:".streamlyshare.online"
-    //secure true makes the cookie only server modifiable , frontend cant modify it then
-  };
+  const options = getClearCookieOptions();
 
   return res
     .status(200)
@@ -240,12 +230,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
       throw new ApiError(401, "Refresh token is expired or used");
     }
 
-    const options = {
-      httpOnly: true,
-      secure: true,
-      sameSite:"none",
-      domain:".streamlyshare.online"
-    };
+    const options = getCookieOptions();
 
     const { accessToken, refreshToken } =
       await generateAccessAndRefreshTokens(user._id);

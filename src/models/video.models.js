@@ -5,19 +5,15 @@ const videoSchema = new Schema(
     {
         videoFile: {
             type: String, //cloudinary url
-            required: true
         },
         videoPublicId:{
             type:String,
-            required:true
         },
         thumbnail: {
             type: String, //cloudinary url
-            required: true
         },
         thumbnailPublicId:{
             type:String,
-            required:true
         },
         title: {
             type: String, 
@@ -29,7 +25,22 @@ const videoSchema = new Schema(
         },
         duration: {
             type: Number, 
-            required: true
+        },
+        status: {
+            type: String,
+            enum: ["processing", "ready", "failed"],
+            default: "processing"
+        },
+        variants: {
+            type: [Schema.Types.Mixed],
+            default: []
+        },
+        masterPlaylistUrl: {
+            type: String,
+        },
+        hlsPublicIds: {
+            type: [String],
+            default: []
         },
         views: {
             type: Number,

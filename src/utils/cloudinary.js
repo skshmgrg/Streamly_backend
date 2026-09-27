@@ -33,6 +33,23 @@ const uploadOnCloudinary = async(localFilePath)=>{
         return null;
     }
 }
+
+const uploadRawOnCloudinary = async (localFilePath, publicId) => {
+    try {
+        if(!localFilePath) return null
+        const response = await cloudinary.uploader.upload(localFilePath, {
+            resource_type: 'raw',
+            public_id: publicId,
+            overwrite: true,
+        })
+        fs.unlinkSync(localFilePath)
+        return response
+    } catch(error) {
+        console.error("Cloudinary raw upload error:", error)
+        if (fs.existsSync(localFilePath)) fs.unlinkSync(localFilePath)
+        return null
+    }
+}
 const deleteFromCloudinary = async(public_id,resourceType)=>{
     // console.log(localFilePath);
     try{
@@ -53,4 +70,4 @@ const deleteFromCloudinary = async(public_id,resourceType)=>{
     }
 }
 
-export {uploadOnCloudinary,deleteFromCloudinary}
+export {uploadOnCloudinary, uploadRawOnCloudinary, deleteFromCloudinary}

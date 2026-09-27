@@ -91,7 +91,7 @@ if (!await User.exists({ _id: userId })) {
 
 // Aggregate videos
 const videos = await Video.aggregate([
-  { $match: { owner: userId } },
+  { $match: { owner: userId, status: "ready" } },
   { $sort:  { createdAt: -1 } },
   { $skip:  skip },
   { $limit: limit },
@@ -103,7 +103,7 @@ const videos = await Video.aggregate([
       as:           "owner"
     }
   },
-  { $unwind: "$owner" },
+  { $unwind: "$owner" },//Splits the document into multiple documents — one per element of the array
   {
     $project: {
       title:       1,
@@ -122,7 +122,7 @@ const videos = await Video.aggregate([
 ]);
 
 // Total count for pagination
-const total  = await Video.countDocuments({ owner: userId });
+const total  = await Video.countDocuments({ owner: userId, status: "ready" });
 const totalPages = Math.ceil(total / limit);
 
 res.status(200).json(new ApiResponse(200, {
