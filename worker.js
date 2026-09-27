@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import dns from 'node:dns';
+import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import mongoose from 'mongoose';
 import path from 'node:path';
@@ -10,6 +11,35 @@ import { DB_NAME } from './src/constants.js';
 import { Video } from './src/models/video.models.js';
 import { redisConnection } from './src/utils/redisConnection.js';
 import { uploadOnCloudinary, uploadRawOnCloudinary } from './src/utils/cloudinary.js';
+
+const findFfmpegExecutable = () => {
+  if (process.env.FFMPEG_PATH && fs.existsSync(process.env.FFMPEG_PATH)) {
+    return process.env.FFMPEG_PATH;
+  }
+
+  if (process.platform !== 'win32' || !process.env.LOCALAPPDATA) return null;
+
+  const wingetPackages = path.join(process.env.LOCALAPPDATA, 'Microsoft', 'WinGet', 'Packages');
+  if (!fs.existsSync(wingetPackages)) return null;
+
+  const pending = [wingetPackages];
+  while (pending.length) {
+    const currentDir = pending.pop();
+    for (const entry of fs.readdirSync(currentDir, { withFileTypes: true })) {
+      const entryPath = path.join(currentDir, entry.name);
+      if (entry.isDirectory()) {
+        pending.push(entryPath);
+      } else if (entry.name.toLowerCase() === 'ffmpeg.exe') {
+        return entryPath;
+      }
+    }
+  }
+
+  return null;
+};
+
+const ffmpegPath = findFfmpegExecutable();
+if (ffmpegPath) ffmpeg.setFfmpegPath(ffmpegPath);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
