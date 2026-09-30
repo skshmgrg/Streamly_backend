@@ -86,6 +86,7 @@ describe('Video API', () => {
       thumbnail: 'https://example.com/thumb-1.png',
       thumbnailPublicId: 'thumb-1',
       duration: 60,
+      status: 'ready',
       owner: user._id,
     });
 
